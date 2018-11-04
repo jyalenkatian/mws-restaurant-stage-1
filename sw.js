@@ -3,6 +3,8 @@ const versionNumber = "-002";
 
 var cacheID = appName + versionNumber;
 
+var imgCache = appName + "-images" + versionNumber;
+
 // Referenced from Doug Brown's Webinar
 
 /** At Service Worker Install time, cache all static assets */
@@ -33,30 +35,52 @@ self.addEventListener("install", event => {
 self.addEventListener("fetch", event => {
     let cacheRequest = event.request;
     let cacheUrlObj = new URL(event.request.url);
-    if(event.request.url.indexOf("restaurant.html") > -1) {
-        const cacheURL = "restaurant.html";
-        cacheRequest = new Request(cacheURL);
-    }
+
     if(cacheUrlObj.hostname !== "localhost") {
         event.request.mode = "no-cors";
     }
 
-    event.respondWith(
-        caches.match(cacheRequest).then(response => {
-            return (
-                response ||
-                fetch(event.request).then(fetchResponse => {
-                    return caches.open(cacheID).then(cache => {
-                        cache.put(event.request, fetchResponse.clone());
-                        return fetchResponse;
-                    });
-                }).catch(error => {
-                    return new Response("Application is not connected to the internet.", {
-                        status: 404,
-                        statusText: "Appplication is not connected to the internet"
-                    });
-                })
-            );
-        })
-    );
+    // Cache images & match them if looking for an image file
+    if(cacheUrlObj.pathname.startsWith('/img')) {
+        let imageUrl = cacheRequest.url;
+        
+        cacheRequest = new Request(imageUrl);
+        event.respondWith(
+            caches.match(cacheRequest).then(response => {
+                return (
+                    response ||
+                    fetch(event.request).then(fetchResponse => {
+                        return caches.open(imgCache).then(cache => {
+                            cache.put(event.request, fetchResponse.clone());
+                            return fetchResponse;
+                        });
+                    }).catch(error => {
+                        return new Response("Application is not connected to the internet.", {
+                            status: 404,
+                            statusText: "Appplication is not connected to the internet"
+                        });
+                    })
+               );
+            })
+        );
+    } else { // Else load anything else
+        event.respondWith(
+            caches.match(cacheRequest).then(response => {
+                return (
+                    response ||
+                    fetch(event.request).then(fetchResponse => {
+                        return caches.open(cacheID).then(cache => {
+                            cache.put(event.request, fetchResponse.clone());
+                            return fetchResponse;
+                        });
+                    }).catch(error => {
+                        return new Response("Application is not connected to the internet.", {
+                            status: 404,
+                            statusText: "Appplication is not connected to the internet."
+                        });
+                    })
+                );
+            })
+        );
+    }
 });
