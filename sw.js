@@ -3,6 +3,8 @@ const versionNumber = "-002";
 
 var cacheID = appName + versionNumber;
 
+// Referenced from Doug Brown's Webinar
+
 /** At Service Worker Install time, cache all static assets */
 self.addEventListener("install", event => {
     event.waitUntil(
