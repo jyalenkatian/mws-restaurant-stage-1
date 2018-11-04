@@ -427,7 +427,7 @@ h3 {
     overflow: hidden;
     padding: 20px 40px 40px;
     position: relative;
-    width: 85%;
+    width: 70%;
 }
 
 #reviews-list li p {
@@ -470,6 +470,7 @@ h3 {
 
 @media only screen and (min-width: 0px) {
     #restaurants-list li {
+        padding: 10px;
         max-width: 100%;
     }
 
