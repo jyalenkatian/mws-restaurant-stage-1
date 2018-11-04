@@ -18,7 +18,8 @@ self.addEventListener("install", event => {
                 "/js/dbhelper.js",
                 "/js/main.js",
                 "/js/restauarant_info.js",
-                "/js/register.js"
+                "/js/register.js",
+                "/img/favicon.png"
             ]).catch(error => {
                 console.log("Failed to open cache: " + error);
             });
