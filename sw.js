@@ -27,22 +27,6 @@ self.addEventListener("install", event => {
     );
 });
 
-/** At Service Worker Activation, Delete previous caches, if any */
-self.addEventListener('activate', event => {
-    event.waitUntil(
-      caches.keys().then(cacheNames => {
-        return Promise.all(
-          cacheNames.filter(cacheName => {
-            return cacheName.startsWith(appName) &&
-                   !allCaches.includes(cacheName);
-          }).map(cacheName => {
-            return caches.delete(cacheName);
-          })
-        );
-      })
-    );
-  });
-
 /** Hijack fetch requests and respond accordingly */
 self.addEventListener("fetch", event => {
     let cacheRequest = event.request;
