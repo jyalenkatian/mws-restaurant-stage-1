@@ -61,7 +61,16 @@ class DBHelper {
         callback(null, restaurants);
       });
     }).catch(e => {
-      callback(`Request failed. Returned error: ${e}`, null);
+      // If any error happens in retrieving data from the API, attempt to retrieve data from the IDB
+      console.log(`Request failed. Returned error: ${e}\nTrying from the IndexedDB...`);
+      this.getRestaurants().then(idbResults => {
+        if(idbResults.length > 0) {
+          console.log("Success! There is data stored in the IndexedDB.");
+          callback(null, idbResults);
+        } else {
+          callback("There are no restaurants stored in the IndexedDB.", null);
+        }
+      });
     });
   }
 
@@ -76,9 +85,19 @@ class DBHelper {
         return Promise.reject("Restaurant could not be fetched");
       return response.json();
     }).then(fetchedRestaurant => {
+      // If data successfully retrieved via the API, put it in the IDB as well 
+      this.putRestaurants(fetchedRestaurant);
       return callback(null, fetchedRestaurant);
     }).catch(networkError => {
-      return callback(networkError, null);
+      // API fetch didn't work via the network
+      // Try fetching from the IDB
+      console.log(`${networkError}\nNow trying to retrieve data from the IndexedDB`);
+      this.getRestaurants(id).then(idbResults => {
+        if(!idbResults)
+          return callback("There are no restaurants stored in the IndexedDB.", null);
+        else
+          return callback(null, idbResults);
+      });
     });
   }
 
