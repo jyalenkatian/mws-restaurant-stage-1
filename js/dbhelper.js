@@ -3,6 +3,44 @@
  */
 class DBHelper {
 
+  // Open up the database
+  static dbPromise() {
+    return idb.open('restaurants_db', 1, upgradeDB => {
+        switch(upgradeDB.oldVersion) {
+          case 0:
+            upgradeDB.createObjectStore('restaurants', {keyPath: 'id'});
+        }
+    });
+  }
+
+  // Function to place the restaurant values into the database
+  static putRestaurants(restaurants) {
+      if(!restaurants.push)
+          restaurants = [restaurants];
+      DBHelper.dbPromise().then(db => {
+          const store = db.transaction('restaurants', 'readwrite').objectStore('restaurants');
+          Promise.all(restaurants.map(networkRestaurant => {
+              return store.get(networkRestaurant.id).then(idbRestaurant => {
+                  if(!idbRestaurant || networkRestaurant.updatedAt > idbRestaurant.updatedAt) {
+                      return store.put(networkRestaurant);
+                  }
+              });
+          })).then(function(){
+              return store.complete;
+          });
+      });
+  };
+
+  // Function to retrieve restaurants
+  static getRestaurants(id = undefined) {
+      return DBHelper.dbPromise().then(db => {
+          const store = db.transaction('restaurants').objectStore('restaurants');
+          if(id)
+              return store.get(Number(id));
+          return store.getAll();
+      });
+  };
+
   /**
    * Database URL.
    * Change this to restaurants.json file location on your server.
@@ -19,6 +57,7 @@ class DBHelper {
     fetch(DBHelper.DATABASE_URL).then(response => {
       response.json().then(restaurants => {
         // console.log("restaurants JSON: ", restaurants);
+        this.putRestaurants(restaurants);
         callback(null, restaurants);
       });
     }).catch(e => {

@@ -23,6 +23,7 @@ self.addEventListener("install", event => {
                 "/js/main.js",
                 "/js/restauarant_info.js",
                 "/js/register.js",
+                "/js/idb.js",
                 "/img/favicon.png"
             ]).catch(error => {
                 console.log("Failed to open cache: " + error);
