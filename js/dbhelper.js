@@ -3,42 +3,62 @@
  */
 class DBHelper {
 
+  /* Next three functions deal with the indexed database:
+    static dbPromise();
+    static putRestaurants();
+    static getRestaurants();
+
+    Code based off of the walkthrough: https://alexandroperez.github.io/mws-walkthrough/?2.5.setting-up-indexeddb-promised-for-offline-use
+  */
+
   // Open up the database
   static dbPromise() {
+    // Open the database and update it according to its version #
     return idb.open('restaurants_db', 1, upgradeDB => {
-        switch(upgradeDB.oldVersion) {
-          case 0:
-            upgradeDB.createObjectStore('restaurants', {keyPath: 'id'});
-        }
+      switch(upgradeDB.oldVersion) {
+        case 0:
+          upgradeDB.createObjectStore('restaurants', {keyPath: 'id'});
+      }
     });
   }
 
   // Function to place the restaurant values into the database
   static putRestaurants(restaurants) {
-      if(!restaurants.push)
-          restaurants = [restaurants];
-      DBHelper.dbPromise().then(db => {
-          const store = db.transaction('restaurants', 'readwrite').objectStore('restaurants');
-          Promise.all(restaurants.map(networkRestaurant => {
-              return store.get(networkRestaurant.id).then(idbRestaurant => {
-                  if(!idbRestaurant || networkRestaurant.updatedAt > idbRestaurant.updatedAt) {
-                      return store.put(networkRestaurant);
-                  }
-              });
-          })).then(function(){
-              return store.complete;
-          });
+    // 
+    if(!restaurants.push)
+      restaurants = [restaurants];
+    // Open up the database
+    DBHelper.dbPromise().then(db => {
+      // Open up a transaction with a store transaction for the object store via readwrite access
+      const store = db.transaction('restaurants', 'readwrite').objectStore('restaurants');
+      // resolve the following as a promise:
+      //    -Get the data from the network
+      //    -Put/Insert the data into the database if either:
+      //        > The restaurant id doesn't already exist in the database
+      //        > The data for that restaurant id is out-of-date
+      Promise.all(restaurants.map(networkRestaurant => {
+        return store.get(networkRestaurant.id).then(idbRestaurant => {
+          if(!idbRestaurant || networkRestaurant.updatedAt > idbRestaurant.updatedAt) {
+            return store.put(networkRestaurant);
+          }
+        });
+      })).then(function(){
+        return store.complete;
       });
+    });
   };
 
   // Function to retrieve restaurants
+  // 'id' is an optional parameter and will default to 'undefined' if not provided
   static getRestaurants(id = undefined) {
-      return DBHelper.dbPromise().then(db => {
-          const store = db.transaction('restaurants').objectStore('restaurants');
-          if(id)
-              return store.get(Number(id));
-          return store.getAll();
-      });
+    // Open the database, then open a store transaction for the object store via readonly
+    return DBHelper.dbPromise().then(db => {
+      const store = db.transaction('restaurants').objectStore('restaurants');
+      // If an 'id' was provided, return the appropriate restaurant id as a Number-type to look up in the key column of the database
+      if(id)
+        return store.get(Number(id));
+      return store.getAll();
+    });
   };
 
   /**
@@ -94,8 +114,10 @@ class DBHelper {
       console.log(`${networkError}\nNow trying to retrieve data from the IndexedDB`);
       this.getRestaurants(id).then(idbResults => {
         if(!idbResults)
+        // If failed, throw a callback with an error message
           return callback("There are no restaurants stored in the IndexedDB.", null);
         else
+        // Successful, then send the results
           return callback(null, idbResults);
       });
     });
