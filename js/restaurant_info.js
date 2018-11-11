@@ -110,8 +110,8 @@ fillRestaurantHTML = (restaurant = self.restaurant) => {
   if (restaurant.operating_hours) {
     fillRestaurantHoursHTML();
   }
-  // fill reviews
-  fillReviewsHTML();
+  // fill reviews by getting the data from the network
+  DBHelper.fetchReviewsByRestaurantId(restaurant.id).then(fillReviewsHTML);
 }
 
 /**
@@ -171,7 +171,8 @@ createReviewHTML = (review) => {
   li.appendChild(name);
 
   const date = document.createElement('p');
-  date.innerHTML = review.date;
+  // Pull date from the object
+  date.innerHTML = new Date(review.createdAt).toLocaleDateString();
   date.setAttribute("tabindex", 0);
   li.appendChild(date);
 

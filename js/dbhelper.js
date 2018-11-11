@@ -213,6 +213,39 @@ class DBHelper {
   }
 
   /**
+   * Restaurant Review Functions 
+  */
+
+  /**
+   * Reviews URL.
+   */
+  static get REVIEWS_URL() {
+    const port = 1337 // Sails Server Port
+    return `http://localhost:${port}/reviews/?restaurant_id=`;
+  }
+  // Function to fetch reviews for the appropriate restaurant
+  static fetchReviewsByRestaurantId(restaurant_id) {
+    // 'GET' call for reviews
+    return fetch(`${DBHelper.REVIEWS_URL}${restaurant_id}`).then(response => {
+      // if unsuccessful, log it to console, or else, convert response to JSON
+      if(!response.ok) {
+        return Promise.reject("Unable to fetch reviews from the network");
+      } else {
+        return response.json();
+      }
+    }).then(fetchedReviews => {
+      // If all good, return the data fetched
+      // TODO: store reviews in idb
+      return fetchedReviews;
+    }).catch(networkError => {
+      // Reviews couldn't be fetched, throw error
+      // TODO: try to get reviews from idb
+      console.log(`${networkError}`);
+      return null;
+    })
+  }
+
+  /**
    * Restaurant page URL.
    */
   static urlForRestaurant(restaurant) {
