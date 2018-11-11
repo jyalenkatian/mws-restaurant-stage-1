@@ -1,5 +1,5 @@
 const appName = "mws-restaurant";
-const versionNumber = "-002";
+const versionNumber = "-003";
 
 var cacheID = appName + versionNumber;
 
@@ -16,15 +16,23 @@ self.addEventListener("install", event => {
                 "/",
                 "/index.html",
                 "/restaurant.html",
+                "/manifest.json",
                 "/css/styles.css",
-                "/data/restaurants.json",
                 "/js/",
                 "/js/dbhelper.js",
                 "/js/main.js",
                 "/js/restauarant_info.js",
                 "/js/register.js",
                 "/js/idb.js",
-                "/img/favicon.png"
+                "/img/favicon.png",
+                "/img/icons/icon-72x72.png",
+                "/img/icons/icon-96x96.png",
+                "/img/icons/icon-128x128.png",
+                "/img/icons/icon-144x144.png",
+                "/img/icons/icon-152x152.png",
+                "/img/icons/icon-192x192.png",
+                "/img/icons/icon-384x384.png",
+                "/img/icons/icon-512x512.png"
             ]).catch(error => {
                 console.log("Failed to open cache: " + error);
             });
