@@ -27,7 +27,8 @@ class DBHelper {
   }
 
   // Function to place the restaurant values into the database
-  static putRestaurants(restaurants) {
+  // Second function parameter, forceUpdate, defaults to false. If true, the data is updated by force.
+  static putRestaurants(restaurants, forceUpdate = false) {
     if(!restaurants.push)
       restaurants = [restaurants];
     // Open up the database
@@ -39,9 +40,13 @@ class DBHelper {
       //    -Put/Insert the data into the database if either:
       //        > The restaurant id doesn't already exist in the database
       //        > The data for that restaurant id is out-of-date
+      //    -Force update the data if parameter is set to true
       Promise.all(restaurants.map(networkRestaurant => {
         return store.get(networkRestaurant.id).then(idbRestaurant => {
-          if(!idbRestaurant || networkRestaurant.updatedAt > idbRestaurant.updatedAt) {
+          if(forceUpdate) {
+            return store.put(networkRestaurant);
+          }
+          if(!idbRestaurant || new Date(networkRestaurant.updatedAt) > new Date(idbRestaurant.updatedAt)) {
             return store.put(networkRestaurant);
           }
         });
@@ -79,7 +84,7 @@ class DBHelper {
       //        > The data for that review id is out-of-date
       Promise.all(reviews.map(networkReview => {
         return store.get(networkReview.id).then(idbReview => {
-          if(!idbReview || networkReview.updatedAt > idbReview.updatedAt) {
+          if(!idbReview || new Date(networkReview.updatedAt) > new Date(idbReview.updatedAt)) {
             return store.put(networkReview);
           }
         });
