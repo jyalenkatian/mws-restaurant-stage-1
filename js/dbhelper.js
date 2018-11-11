@@ -3,10 +3,12 @@
  */
 class DBHelper {
 
-  /* Next three functions deal with the indexed database:
+  /* Next five functions deal with the indexed database:
     static dbPromise();
     static putRestaurants();
     static getRestaurants();
+    static putReviews();
+    static getReviewsForRestaurant();
 
     Code based off of the walkthrough: https://alexandroperez.github.io/mws-walkthrough/?2.5.setting-up-indexeddb-promised-for-offline-use
   */
@@ -14,17 +16,18 @@ class DBHelper {
   // Open up the database
   static dbPromise() {
     // Open the database and update it according to its version #
-    return idb.open('restaurants_db', 1, upgradeDB => {
+    return idb.open('restaurants_db', 2, upgradeDB => {
       switch(upgradeDB.oldVersion) {
         case 0:
           upgradeDB.createObjectStore('restaurants', {keyPath: 'id'});
+        case 1:
+          upgradeDB.createObjectStore('reviews', {keyPath: 'id'}).createIndex('restaurant_id', 'restaurant_id');
       }
     });
   }
 
   // Function to place the restaurant values into the database
   static putRestaurants(restaurants) {
-    // 
     if(!restaurants.push)
       restaurants = [restaurants];
     // Open up the database
@@ -46,7 +49,7 @@ class DBHelper {
         return store.complete;
       });
     });
-  };
+  }
 
   // Function to retrieve restaurants
   // 'id' is an optional parameter and will default to 'undefined' if not provided
@@ -59,7 +62,43 @@ class DBHelper {
         return store.get(Number(id));
       return store.getAll();
     });
-  };
+  }
+
+  // Exact code as putRestaurants(), however different variables names to be more meaningful for this function
+  static putReviews(reviews) {
+    if(!reviews.push)
+      reviews = [reviews];
+    // Open up the database
+    DBHelper.dbPromise().then(db => {
+      // Open up a transaction with a store transaction for the reviews object store via readwrite access
+      const store = db.transaction('reviews', 'readwrite').objectStore('reviews');
+      // Resolve the following as a promise:
+      //    -Get the data from the network
+      //    -Put/Insert the data into the database if either:
+      //        > The review id doesn't already exist in the database
+      //        > The data for that review id is out-of-date
+      Promise.all(reviews.map(networkReview => {
+        return store.get(networkReview.id).then(idbReview => {
+          if(!idbReview || networkReview.updatedAt > idbReview.updatedAt) {
+            return store.put(networkReview);
+          }
+        });
+      })).then(function(){
+        return store.complete;
+      });
+    });
+  }
+
+  // Get all the reviews for the appropriate restaurant by referencing its id
+  // Code is very close to the getRestaurants() code
+  static getReviewsForRestaurant(id) {
+    return DBHelper.dbPromise().then(db => {
+      // Open the database, then open a store transaction for the object store via readonly
+      const storeIndex = db.transaction('reviews').objectStore('reviews').index('restaurant_id');
+      // return the appropriate restaurant id as a Number-type to look up in the key column of the database
+      return storeIndex.getAll(Number(id));
+    })
+  }
 
   /**
    * Database URL.
@@ -235,13 +274,21 @@ class DBHelper {
       }
     }).then(fetchedReviews => {
       // If all good, return the data fetched
-      // TODO: store reviews in idb
+      // & store reviews in idb
+      this.putReviews(fetchedReviews);
       return fetchedReviews;
     }).catch(networkError => {
-      // Reviews couldn't be fetched, throw error
-      // TODO: try to get reviews from idb
-      console.log(`${networkError}`);
-      return null;
+      // API fetch didn't work via the network
+      // Try fetching from the IDB
+      console.log(`${networkError}\nNow trying to retrieve data from the IndexedDB`);
+      return this.getReviewsForRestaurant(restaurant_id).then(idbResults => {
+        if(idbResults < 1)
+        // If failed (no reviews found), return a null
+          return null;
+        else
+        // Successful, then send the results
+          return idbResults;
+      });
     })
   }
 
