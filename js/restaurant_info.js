@@ -167,7 +167,7 @@ fillReviewsHTML = (reviews = self.restaurant.reviews) => {
   h3.innerHTML = "Leave a Review";
   container.appendChild(h3);
   const id = getParameterByName('id');
-  container.appendChild(DBHelper.reviewForm(id));
+  container.appendChild(DBHelper.createReviewFormHTML(id));
 }
 
 /**
