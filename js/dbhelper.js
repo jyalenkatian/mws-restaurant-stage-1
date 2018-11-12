@@ -22,6 +22,8 @@ class DBHelper {
           upgradeDB.createObjectStore('restaurants', {keyPath: 'id'});
         case 1:
           upgradeDB.createObjectStore('reviews', {keyPath: 'id'}).createIndex('restaurant_id', 'restaurant_id');
+        // case 2:
+        //   upgradeDB.createObjectStore('offline-reviews', {autoIncrement: true}).createIndex('restaurant_id', 'restaurant_id');
       }
     });
   }
@@ -349,7 +351,6 @@ class DBHelper {
     const url = `${DBHelper.DATABASE_URL}/${restaurantId}/?is_favorite=${!fav}`;
     const PUT = {method: 'PUT'};
     
-    // TODO: use Background Sync to sync data with API server
     return fetch(url, PUT).then(response => {
       if (!response.ok){
         return Promise.reject("Unable to mark restaurant as favorite.");
@@ -380,10 +381,12 @@ class DBHelper {
   /**
    * Review Form Functions:
    *    static createReviewHTML()
-   *    static clearForm()
-   *    static validateAndGetData()
+   *    static resetForm()
+   *    static checkData()
    *    static handleSubmit()
-   *    static reviewForm()
+   *    static postNewReview()
+   *    static sendDataWhenBackOnline()
+   *    static createReviewFormHTML()
   */
   
   /**
@@ -393,6 +396,16 @@ class DBHelper {
  */
 static createReviewHTML(review) {
   const li = document.createElement('li');
+
+  // If network is offline, add an appropriate message
+  if(!navigator.onLine) {
+    const connectionStatus = document.createElement('p');
+    connectionStatus.classList.add('offline_label');
+    connectionStatus.innerHTML = 'Network connection is currently offline.\nReview will be uploaded when the connection is back online.';
+    li.classList.add('reviews_offline');
+    li.appendChild(connectionStatus);
+  }
+
   const name = document.createElement('p');
   name.innerHTML = review.name;
   name.setAttribute("tabindex", 0);
@@ -420,96 +433,181 @@ static createReviewHTML(review) {
 /**
  * Clear form data
  */
-static clearForm() {
-  // clear form data
+static resetForm() {
   document.getElementById('name').value = "";
   document.getElementById('rating').selectedIndex = 0;
   document.getElementById('comments').value = "";
 }
 
 /**
- * Make sure all form fields have a value and return data in
- * an object, so is ready for a POST request.
+ * Check that all fields are filled. IF so, return the data as an object
  */
-static validateAndGetData() {
+static checkData() {
   const data = {};
 
-  // get name
+  // Check the name field:
   let name = document.getElementById('name');
   // If there is no data in the name field, highlight that field on the UI
   if (name.value === '') {
     name.focus();
     return;
+  } else {  // Copy over the field value
+    data.name = name.value;
   }
-  data.name = name.value;
 
-  // get rating
-  const ratingSelect = document.getElementById('rating');
-  const rating = ratingSelect.options[ratingSelect.selectedIndex].value;
+  // Check the rating field:
+  const ratingDropDownMenu = document.getElementById('rating');
+  const ratingValue = ratingDropDownMenu.options[ratingDropDownMenu.selectedIndex].value;
   // If there is no data in the rating field, highlight that field on the UI
-  if (rating == "--") {
-    ratingSelect.focus();
+  if (ratingValue == "--") {
+    ratingDropDownMenu.focus();
     return;
+  } else {  // Copy over the rating value
+    data.rating = Number(ratingValue);
   }
-  data.rating = Number(rating);
 
-  // get comments
+  // Check the comments field/textarea:
   let comments = document.getElementById('comments');
   // If there is no data in the comments field, highlight that field on the UI
   if (comments.value === "") {
     comments.focus();
     return;
+  } else {  // Copy over the comments value
+    data.comments = comments.value;
   }
-  data.comments = comments.value;
 
-  // get restaurant_id
+  // Get the restaurant's id which the review is for
   let restaurantId = document.getElementById('review-form').dataset.restaurantId;
   data.restaurant_id = Number(restaurantId);
 
-  // set createdAT
+  // Set the createdAt timesstamp
   data.createdAt = new Date().toISOString();
 
   return data;
 }
 
 /**
- * Handle submit. 
+ * Function to carry out submitting the form
  */
 static handleSubmit(e) {
   e.preventDefault();
   // Ensure all fields are filled and return as a review
-  const review = DBHelper.validateAndGetData();
+  const review = DBHelper.checkData();
   if (!review) return;
 
+  // Debug:
   console.log(review);
 
+  let offline_review = {
+    name: 'addReview',
+    data: review,
+    object_type: 'review'
+  }
+
+  // Get the HTML div that houses the reviews
+  const reviewList = document.getElementById('reviews-list');
+  // Create new review element that contains all the values the user entered in the form
+  const newReview = DBHelper.createReviewHTML(review);
+  // Append it to the reviews list
+  reviewList.appendChild(newReview);
+
+  // Reset the new reviews form
+  DBHelper.resetForm();
+
+  // If offline, handle and store the review locally
+  if(!navigator.onLine && offline_review.name === 'addReview') {
+    DBHelper.sendDataWhenBackOnline(offline_review);
+    return;
+  } else { // If online, immediately store the review in the IDB store and send it to the API via POST
+    DBHelper.postNewReview(review);
+  }
+}
+
+// Code was originally in handleSubmit, but has been split into the following separate function
+static postNewReview(review) {
   const url = `http://localhost:1337/reviews/`;
   const POST = {
     method: 'POST',
     body: JSON.stringify(review)
   };
 
-  // TODO: use Background Sync to sync data with API server
+  //  Send the new reviews data via POST to the Sails Server
   return fetch(url, POST).then(response => {
     if (!response.ok) return Promise.reject("We couldn't post review to server.");
     return response.json();
   }).then(newNetworkReview => {
-    // save new review on idb
+    // save new review in IDB store
     DBHelper.putReviews(newNetworkReview);
-    // post new review on page
-    const reviewList = document.getElementById('reviews-list');
-    const review = DBHelper.createReviewHTML(newNetworkReview);
-    reviewList.appendChild(review);
-    // clear the form
-    DBHelper.clearForm();
   });
+}
 
+static sendDataWhenBackOnline(offline_review) {
+  console.log(`Values: ${Object.values(offline_review)}`);
+
+  /** ==== Attempt to store values by an index, but not all are being stored properly ==== */
+
+  // let index = localStorage.length + 1;
+  // localStorage.setItem(index, JSON.stringify(offline_review.data));
+
+  // window.addEventListener('online', (event) => {
+  //   console.log(`We're back online!`);
+  //   let data = JSON.parse(localStorage.getItem(index));
+  //   console.log(`Time to add next offline review`);
+  //   [...document.querySelectorAll(".reviews_offline")].forEach(obj => {
+  //     obj.classList.remove('reviews_offline');
+  //     obj.querySelector('.offline_label').remove();
+  //   });
+  //   console.log(`Done`);
+  //   if(data !== null) {
+  //     if(offline_review.name === 'addReview') {
+  //       DBHelper.postNewReview(offline_review.data);
+  //     }
+  //     localStorage.removeItem(index);
+  //   }
+  // });
+
+  const offlineReview = offline_review.data;
+  // scheme for storing values in arrays in local storage given in https://stackoverflow.com/questions/40843773/localstorage-keeps-overwriting-my-data
+  let revHistory = JSON.parse(localStorage.getItem('offlineReviewsStorage')) || [];
+
+  // Push offline review onto the array:
+  revHistory.push(offlineReview);
+  localStorage.setItem('offlineReviewsStorage', JSON.stringify(revHistory));
+
+  // Add an event listener for when the network is back online
+  //  - When online, copy over all locally-stored offline reviews to the postNewReview function
+  //     > Add to IDB store & send to Sails Server
+  window.addEventListener('online', (event) => {
+    console.log(event);
+    console.log(`We're back online!`);
+    let retrievedReviews = localStorage.getItem('offlineReviewsStorage');
+    retrievedReviews = JSON.parse(retrievedReviews);
+
+    // For each of the objects in the array:
+    //  - Remove 'reviews_offline' class to clear the offline message CSS
+    //  - Remove offline label message
+    [...document.querySelectorAll(".reviews_offline")]
+    .forEach(el => {
+      el.classList.remove('reviews_offline');
+      el.querySelector('.offline_label').remove();
+    });
+
+    // If there is data to be transferred, take each object in the array and add it
+    if (retrievedReviews !== null && retrievedReviews.length > 0) {
+      for (const retrievedReview of retrievedReviews) {
+        console.log(`Adding the next offline review...`);
+        DBHelper.postNewReview(retrievedReview);
+      }
+      // After all offline reviews have been transferred, clear the local storage
+      localStorage.removeItem('offlineReviewsStorage');
+    }
+  });
 }
 
 /**
- * Returns a form element for adding new reviews.
+ * Creates and returns a form for users to add a new review. Retrieved from Alexandro Perez's walkthrough for basic skeleton
  */
-static reviewForm(restaurantId) {
+static createReviewFormHTML(restaurantId) {
   const form = document.createElement('form');
   form.id = "review-form";
   form.dataset.restaurantId = restaurantId;

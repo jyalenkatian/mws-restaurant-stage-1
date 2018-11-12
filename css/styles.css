@@ -599,3 +599,10 @@ button.add-review {
     cursor: pointer;
     font-family: 'Lato', sans-serif;
 }
+
+.offline_label {
+    background-color: red;
+    color: white;
+    padding: 5px;
+    text-align: center;
+}
