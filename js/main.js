@@ -158,6 +158,10 @@ fillRestaurantsHTML = (restaurants = self.restaurants) => {
 createRestaurantHTML = (restaurant) => {
   const li = document.createElement('li');
 
+  // Add Favorites Button
+  const favBtn = DBHelper.favoriteButton(restaurant);
+  li.append(favBtn);
+
   const image = document.createElement('img');
   image.className = 'restaurant-img';
   // image.src = DBHelper.imageUrlForRestaurant(restaurant);

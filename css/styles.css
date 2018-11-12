@@ -511,3 +511,39 @@ h3 {
         max-width: 310px;
     }
 }
+
+/* ====================== Favorite Button ====================== */
+/* Styling when button is not toggled */
+button.fav {
+    padding: 10px !important;
+    margin: 0px 0px -40px 120px !important;
+    position: relative;
+    float: right;
+    background-color: #ffffff !important;
+    color: #005a7d !important;
+    width: 50px;
+    /* other stylings copied from #restaurant-list li button so it carries over to the restaurant info page */
+    border-bottom: 3px solid #eee !important;
+    border-style: unset;
+    font-size: 10pt;
+    text-align: center;
+    text-decoration: none;
+    text-transform: uppercase;
+    transition: 0.5s;
+    cursor: pointer;
+    font-family: 'Lato', sans-serif;
+}
+
+/* Styling when button is toggled */
+button.fav[aria-pressed=true]{
+    color: #001e27 !important;
+    background-color: #ffb600 !important;
+}
+
+/* Styling for hovered & focused button */
+button.fav:hover,
+button.fav:focus {
+    color: #005a7d !important;
+    box-shadow: -5px 5px 11px 0px #ccc !important;
+    border-bottom: 3px solid #005a7d !important;
+}

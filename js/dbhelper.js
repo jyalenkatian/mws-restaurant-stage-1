@@ -336,5 +336,46 @@ class DBHelper {
     return marker;
   } */
 
+  /**
+   * Favorite Button-Related Functions:
+   *    static handleClick()
+   *    static favoriteButton()
+  */
+
+  // Event handler for when the favorite button is clicked
+  static handleClick() {
+    const restaurantId = this.dataset.id;
+    const fav = this.getAttribute('aria-pressed') == 'true';
+    const url = `${DBHelper.DATABASE_URL}/${restaurantId}/?is_favorite=${!fav}`;
+    const PUT = {method: 'PUT'};
+    
+    // TODO: use Background Sync to sync data with API server
+    return fetch(url, PUT).then(response => {
+      if (!response.ok){
+        return Promise.reject("Unable to mark restaurant as favorite.");
+      } else {
+        return response.json();
+      }
+    }).then(updatedRestaurant => {
+      // update restaurant on idb
+      DBHelper.putRestaurants(updatedRestaurant, true);
+      // change state of the toggle button
+      this.setAttribute('aria-pressed', !fav);
+    });
+  }
+
+  // Dynamically create the favorite button element within the HTML & set all it's properties
+  static favoriteButton(restaurant) {
+    const button = document.createElement('button');
+    button.innerHTML = `<i class="fas fa-star"></i>`;
+    button.className = "fav";
+    button.dataset.id = restaurant.id;
+    button.setAttribute('aria-label', `Mark ${restaurant.name} as a favorite.`);
+    button.setAttribute('aria-pressed', restaurant.is_favorite);
+    button.onclick = DBHelper.handleClick;
+
+    return button;
+  }
+
 }
 

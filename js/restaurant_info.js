@@ -84,6 +84,10 @@ fillRestaurantHTML = (restaurant = self.restaurant) => {
   name.innerHTML = restaurant.name;
   name.setAttribute("tabindex", 0);
 
+  // Add Favorites Button
+  const favBtnContainer = document.getElementById('fav-btn-container');
+  favBtnContainer.append(DBHelper.favoriteButton(restaurant));
+
   const address = document.getElementById('restaurant-address');
   address.innerHTML = restaurant.address;
   address.setAttribute("tabindex", 0);
