@@ -8,6 +8,33 @@ document.addEventListener('DOMContentLoaded', (event) => {
   initMap();
 });
 
+// Window Event Listener for when network is back online to store offline reviews
+window.addEventListener('online', (event) => {
+  console.log(event);
+  console.log(`We're back online!`);
+  let retrievedReviews = localStorage.getItem('offlineReviewsStorage');
+  retrievedReviews = JSON.parse(retrievedReviews);
+
+  // For each of the objects in the array:
+  //  - Remove 'reviews_offline' class to clear the offline message CSS
+  //  - Remove offline label message
+  [...document.querySelectorAll(".reviews_offline")]
+  .forEach(el => {
+    el.classList.remove('reviews_offline');
+    el.querySelector('.offline_label').remove();
+  });
+
+  // If there is data to be transferred, take each object in the array and add it
+  if (retrievedReviews !== null && retrievedReviews.length > 0) {
+    for (const retrievedReview of retrievedReviews) {
+      console.log(`Adding the next offline review...`);
+      DBHelper.postNewReview(retrievedReview);
+    }
+    // After all offline reviews have been transferred, clear the local storage
+    localStorage.removeItem('offlineReviewsStorage');
+  }
+});
+
 /**
  * Initialize leaflet map
  */
