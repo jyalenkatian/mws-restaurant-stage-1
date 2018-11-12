@@ -547,3 +547,55 @@ button.fav:focus {
     box-shadow: -5px 5px 11px 0px #ccc !important;
     border-bottom: 3px solid #005a7d !important;
 }
+
+/* ====================== Review Form ====================== */
+#review-form {
+    background-color: #fff;
+    border: 2px solid #f3f3f3;
+    display: block;
+    list-style-type: none;
+    margin: 0 0 40px;
+    overflow: hidden;
+    padding: 20px 40px 40px;
+    position: relative;
+    width: 70%;
+}
+
+input#name {
+    width: 50%;
+    font-family: 'Lato', sans-serif;
+    border-bottom: 2px solid #005a7d !important;
+    border: 0px;
+    font-size: 16px;
+}
+
+select#rating {
+    margin-left: 5px;
+    font-family: 'Lato', sans-serif;
+
+}
+
+textarea#comments {
+    width: 100%;
+    font-family: 'Lato', sans-serif;
+    border: 2px solid #005a7d !important;
+    font-size: 16px;
+}
+
+#review-form p:last-of-type {
+    text-align: center;
+}
+
+button.add-review {
+    width: 60px;
+    /* border-bottom: 3px solid #eee !important; */
+    background-color: #005a7d;
+    padding: 10px 0px;
+    color: white;
+    border-radius: 5px;
+    border-style: unset;
+    font-size: 15pt;
+    transition: 0.5s;
+    cursor: pointer;
+    font-family: 'Lato', sans-serif;
+}

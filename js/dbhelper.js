@@ -10,7 +10,7 @@ class DBHelper {
     static putReviews();
     static getReviewsForRestaurant();
 
-    Code based off of the walkthrough: https://alexandroperez.github.io/mws-walkthrough/?2.5.setting-up-indexeddb-promised-for-offline-use
+    Code based off of the walkthrough: https://alexandroperez.github.io/mws-walkthrough/
   */
 
   // Open up the database
@@ -376,6 +376,194 @@ class DBHelper {
 
     return button;
   }
+
+  /**
+   * Review Form Functions:
+   *    static createReviewHTML()
+   *    static clearForm()
+   *    static validateAndGetData()
+   *    static handleSubmit()
+   *    static reviewForm()
+  */
+  
+  /**
+/**
+ * Create review HTML and add it to the webpage.
+ * Exact copy of createReviewHTML that's in restaurant_info.js
+ */
+static createReviewHTML(review) {
+  const li = document.createElement('li');
+  const name = document.createElement('p');
+  name.innerHTML = review.name;
+  name.setAttribute("tabindex", 0);
+  li.appendChild(name);
+
+  const date = document.createElement('p');
+  // Pull date from the object
+  date.innerHTML = new Date(review.createdAt).toLocaleDateString();
+  date.setAttribute("tabindex", 0);
+  li.appendChild(date);
+
+  const rating = document.createElement('p');
+  rating.innerHTML = `Rating: ${review.rating}`;
+  rating.setAttribute("tabindex", 0);
+  li.appendChild(rating);
+
+  const comments = document.createElement('p');
+  comments.innerHTML = review.comments;
+  comments.setAttribute("tabindex", 0);
+  li.appendChild(comments);
+
+  return li;
+}
+
+/**
+ * Clear form data
+ */
+static clearForm() {
+  // clear form data
+  document.getElementById('name').value = "";
+  document.getElementById('rating').selectedIndex = 0;
+  document.getElementById('comments').value = "";
+}
+
+/**
+ * Make sure all form fields have a value and return data in
+ * an object, so is ready for a POST request.
+ */
+static validateAndGetData() {
+  const data = {};
+
+  // get name
+  let name = document.getElementById('name');
+  // If there is no data in the name field, highlight that field on the UI
+  if (name.value === '') {
+    name.focus();
+    return;
+  }
+  data.name = name.value;
+
+  // get rating
+  const ratingSelect = document.getElementById('rating');
+  const rating = ratingSelect.options[ratingSelect.selectedIndex].value;
+  // If there is no data in the rating field, highlight that field on the UI
+  if (rating == "--") {
+    ratingSelect.focus();
+    return;
+  }
+  data.rating = Number(rating);
+
+  // get comments
+  let comments = document.getElementById('comments');
+  // If there is no data in the comments field, highlight that field on the UI
+  if (comments.value === "") {
+    comments.focus();
+    return;
+  }
+  data.comments = comments.value;
+
+  // get restaurant_id
+  let restaurantId = document.getElementById('review-form').dataset.restaurantId;
+  data.restaurant_id = Number(restaurantId);
+
+  // set createdAT
+  data.createdAt = new Date().toISOString();
+
+  return data;
+}
+
+/**
+ * Handle submit. 
+ */
+static handleSubmit(e) {
+  e.preventDefault();
+  // Ensure all fields are filled and return as a review
+  const review = DBHelper.validateAndGetData();
+  if (!review) return;
+
+  console.log(review);
+
+  const url = `http://localhost:1337/reviews/`;
+  const POST = {
+    method: 'POST',
+    body: JSON.stringify(review)
+  };
+
+  // TODO: use Background Sync to sync data with API server
+  return fetch(url, POST).then(response => {
+    if (!response.ok) return Promise.reject("We couldn't post review to server.");
+    return response.json();
+  }).then(newNetworkReview => {
+    // save new review on idb
+    DBHelper.putReviews(newNetworkReview);
+    // post new review on page
+    const reviewList = document.getElementById('reviews-list');
+    const review = DBHelper.createReviewHTML(newNetworkReview);
+    reviewList.appendChild(review);
+    // clear the form
+    DBHelper.clearForm();
+  });
+
+}
+
+/**
+ * Returns a form element for adding new reviews.
+ */
+static reviewForm(restaurantId) {
+  const form = document.createElement('form');
+  form.id = "review-form";
+  form.dataset.restaurantId = restaurantId;
+
+  let p = document.createElement('p');
+  const name = document.createElement('input');
+  name.id = "name"
+  name.setAttribute('type', 'text');
+  name.setAttribute('aria-label', 'Name field');
+  name.setAttribute('placeholder', 'Enter Your Name');
+  p.appendChild(name);
+  form.appendChild(p);
+
+  p = document.createElement('p');
+  const selectLabel = document.createElement('label');
+  selectLabel.setAttribute('for', 'rating');
+  selectLabel.innerText = "Your rating: ";
+  p.appendChild(selectLabel);
+  const select = document.createElement('select');
+  select.id = "rating";
+  select.name = "rating";
+  select.classList.add('rating');
+  ["--", 1,2,3,4,5].forEach(number => {
+    const option = document.createElement('option');
+    option.value = number;
+    option.innerHTML = number;
+    if (number === "--") option.selected = true;
+    select.appendChild(option);
+  });
+  p.appendChild(select);
+  form.appendChild(p);
+
+  p = document.createElement('p');
+  const textarea = document.createElement('textarea');
+  textarea.id = "comments";
+  textarea.setAttribute('aria-label', 'comments field');
+  textarea.setAttribute('placeholder', 'Enter any comments here');
+  textarea.setAttribute('rows', '10');
+  p.appendChild(textarea);
+  form.appendChild(p);
+
+  p = document.createElement('p');
+  const addButton = document.createElement('button');
+  addButton.setAttribute('type', 'submit');
+  addButton.setAttribute('aria-label', 'Add Review');
+  addButton.classList.add('add-review');
+  addButton.innerHTML = `<i class="fas fa-plus"></i>`;
+  p.appendChild(addButton);
+  form.appendChild(p);
+
+  form.onsubmit = DBHelper.handleSubmit;
+
+  return form;
+};
 
 }
 
